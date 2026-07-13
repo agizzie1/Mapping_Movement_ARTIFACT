@@ -596,7 +596,22 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
   const zoomCtl = attachZoom(svg, root, [1, maxZoom], (k) => {
     zoomDetail = k >= ZOOM_DETAIL_THRESHOLD;
     root.classed("zoom-detail", zoomDetail);
+    currentZoomK = k;
+    refreshRibbonsForZoom();
   });
+  // Whatever's currently on screen -- a hover fan-out, a pin, or the
+  // filtered "show all" backdrop -- needs its ribbons rebuilt at the new
+  // zoom level so shrinkSpan's width actually updates; these are the same
+  // three cases setDirection and the filter onChange handler each refresh.
+  function refreshRibbonsForZoom() {
+    if (hoverActive) {
+      if (hoverActive.type === "school") renderSchoolChords(gSchoolChords, hoverActive.key, direction);
+      else renderConferenceChords(gConfChords, hoverActive.key, direction);
+    } else if (shouldAutoShow()) {
+      renderAllConferenceChords();
+    }
+    if (pin) redrawPin();
+  }
 
   const palette = PALETTES[universeKey];
   const mode = currentMode();
@@ -605,6 +620,29 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
   const arcOuter = d3.arc().innerRadius(geo.outerInner).outerRadius(geo.outerOuter);
   const arcInner = d3.arc().innerRadius(geo.innerInner).outerRadius(geo.innerOuter);
   const ribbon = d3.ribbon().radius(geo.chordRadius);
+
+  // Ribbons live in the same zoomed <g> as everything else, so by default
+  // their angular width -- and the gaps between neighboring ribbons -- grow
+  // at the same rate as the rings do. That keeps the *relative* crowding
+  // identical at any zoom level: a fan-out that's hard to pick a single
+  // ribbon out of stays exactly as hard, just bigger. Dividing each ribbon
+  // end's angular half-width by the current zoom level (holding its center
+  // angle fixed) keeps its on-screen width roughly constant instead, so
+  // zooming in visibly opens up gaps between ribbons rather than just
+  // magnifying the whole cluster uniformly.
+  let currentZoomK = 1;
+  function shrinkSpan(startAngle, endAngle, radius) {
+    if (currentZoomK <= 1) return { startAngle, endAngle, radius };
+    const mid = (startAngle + endAngle) / 2;
+    const half = (endAngle - startAngle) / 2 / currentZoomK;
+    return { startAngle: mid - half, endAngle: mid + half, radius };
+  }
+  function zoomAwareRibbon(spec) {
+    return ribbon({
+      source: shrinkSpan(spec.source.startAngle, spec.source.endAngle, spec.source.radius),
+      target: shrinkSpan(spec.target.startAngle, spec.target.endAngle, spec.target.radius),
+    });
+  }
 
   const tooltip = d3.select("#tooltip");
   function showTip(html, event) {
@@ -881,7 +919,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
       const label = pairLabel(deps, conf, seg.target);
       layer.append("path")
         .attr("class", "chord chord-conf")
-        .attr("d", ribbon({
+        .attr("d", zoomAwareRibbon({
           source: { startAngle: seg.startAngle, endAngle: seg.endAngle, radius: geo.chordRadius },
           target: { startAngle: targetSeg.startAngle, endAngle: targetSeg.endAngle, radius: geo.chordRadius },
         }))
@@ -909,7 +947,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
       const label = pairLabel(deps, otherConf, conf);
       layer.append("path")
         .attr("class", "chord chord-conf")
-        .attr("d", ribbon({
+        .attr("d", zoomAwareRibbon({
           source: { startAngle: seg.startAngle, endAngle: seg.endAngle, radius: geo.chordRadius },
           target: { startAngle: targetSeg.startAngle, endAngle: targetSeg.endAngle, radius: geo.chordRadius },
         }))
@@ -949,7 +987,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
         const targetSeg = incomingSegment(prepared.schoolSubIncoming, seg.target, school, targetLayout);
         layer.append("path")
           .attr("class", "chord chord-school chord-out")
-          .attr("d", ribbon({
+          .attr("d", zoomAwareRibbon({
             source: { startAngle: seg.startAngle, endAngle: seg.endAngle, radius: geo.chordRadius },
             target: { startAngle: targetSeg.startAngle, endAngle: targetSeg.endAngle, radius: geo.chordRadius },
           }))
@@ -987,7 +1025,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
         const srcColor = colorOf(prepared.innerByName.get(f.source).conference);
         layer.append("path")
           .attr("class", "chord chord-school chord-in")
-          .attr("d", ribbon({
+          .attr("d", zoomAwareRibbon({
             source: { startAngle: srcSeg.startAngle, endAngle: srcSeg.endAngle, radius: geo.chordRadius },
             target: { startAngle: targetSeg.startAngle, endAngle: targetSeg.endAngle, radius: geo.chordRadius },
           }))
@@ -1025,7 +1063,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
     const targetSeg = incomingSegment(prepared.schoolSubIncoming, dep.t, school, targetLayout);
     const sel = layer.append("path")
       .attr("class", "chord chord-player")
-      .attr("d", ribbon({
+      .attr("d", zoomAwareRibbon({
         source: { startAngle: a0, endAngle: a1, radius: geo.chordRadius },
         target: { startAngle: targetSeg.startAngle, endAngle: targetSeg.endAngle, radius: geo.chordRadius },
       }))
@@ -1084,7 +1122,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
       const label = pairLabel(deps, conf, seg.target);
       gConfChords.append("path")
         .attr("class", "chord chord-conf")
-        .attr("d", ribbon({
+        .attr("d", zoomAwareRibbon({
           source: { startAngle: seg.startAngle, endAngle: seg.endAngle, radius: geo.chordRadius },
           target: { startAngle: targetSeg.startAngle, endAngle: targetSeg.endAngle, radius: geo.chordRadius },
         }))
@@ -1327,7 +1365,19 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
   const zoomCtl = attachZoom(svg, root, [1, 170], (k) => {
     zoomDetail = k >= ZOOM_DETAIL_THRESHOLD;
     root.classed("zoom-detail", zoomDetail);
+    currentZoomK = k;
+    refreshRibbonsForZoom();
   });
+  // See the matching function in renderUniverse.
+  function refreshRibbonsForZoom() {
+    if (hoverActive) {
+      if (hoverActive.type === "school") renderSchoolChords(hoverSchoolSame, gCrossChords, hoverActive.key, direction);
+      else renderConferenceChords(hoverSame, gCrossChords, hoverActive.key, direction);
+    } else if (shouldAutoShow()) {
+      renderAllConferenceChords();
+    }
+    if (pin) redrawPin();
+  }
 
   const mode = currentMode();
   const offFbs = [-geo.offset, 0], offFcs = [geo.offset, 0];
@@ -1336,6 +1386,18 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
   const arcOuter = d3.arc().innerRadius(geo.outerInner).outerRadius(geo.outerOuter);
   const arcInner = d3.arc().innerRadius(geo.innerInner).outerRadius(geo.innerOuter);
   const localRibbon = d3.ribbon().radius(geo.chordRadius);
+
+  // See the matching comment in renderUniverse -- keeps each ribbon's
+  // on-screen angular width roughly constant across zoom levels instead of
+  // growing with everything else, so zoomed-in fan-outs actually gain
+  // visible gaps between neighboring ribbons.
+  let currentZoomK = 1;
+  function shrinkSpan(startAngle, endAngle, radius) {
+    if (currentZoomK <= 1) return { startAngle, endAngle, radius };
+    const mid = (startAngle + endAngle) / 2;
+    const half = (endAngle - startAngle) / 2 / currentZoomK;
+    return { startAngle: mid - half, endAngle: mid + half, radius };
+  }
 
   const tooltip = d3.select("#tooltip");
   function showTip(html, event) { tooltip.style("display", "block").html(html); moveTip(event); }
@@ -1568,24 +1630,23 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
   // ---- shared chord-drawing helpers (route to the right layer/coord-space) -
   function appendFlowRibbon(layer, sourceSeg, targetSpan, sourceUniverse, targetUniverse, fillConf, tipHtml, opts) {
     opts = opts || {};
+    const srcSpan = shrinkSpan(sourceSeg.startAngle, sourceSeg.endAngle, geo.chordRadius);
+    const tgtSpan = shrinkSpan(targetSpan.startAngle, targetSpan.endAngle, geo.chordRadius);
     let sel;
     if (sourceUniverse === targetUniverse) {
       sel = layer.same.append("path")
         .attr("class", "chord")
-        .attr("d", localRibbon({
-          source: { startAngle: sourceSeg.startAngle, endAngle: sourceSeg.endAngle, radius: geo.chordRadius },
-          target: { startAngle: targetSpan.startAngle, endAngle: targetSpan.endAngle, radius: geo.chordRadius },
-        }))
+        .attr("d", localRibbon({ source: srcSpan, target: tgtSpan }))
         .attr("fill", colorOfConf(fillConf, mode))
         .attr("stroke", colorOfConf(fillConf, mode))
         .style("opacity", layer.opacity);
     } else {
       const srcOff = offsetOf(sourceUniverse), tgtOff = offsetOf(targetUniverse);
       const midX = (srcOff[0] + tgtOff[0]) / 2;
-      const p1 = polar(sourceSeg.startAngle, geo.chordRadius, srcOff);
-      const p2 = polar(sourceSeg.endAngle, geo.chordRadius, srcOff);
-      const p3 = polar(targetSpan.startAngle, geo.chordRadius, tgtOff);
-      const p4 = polar(targetSpan.endAngle, geo.chordRadius, tgtOff);
+      const p1 = polar(srcSpan.startAngle, geo.chordRadius, srcOff);
+      const p2 = polar(srcSpan.endAngle, geo.chordRadius, srcOff);
+      const p3 = polar(tgtSpan.startAngle, geo.chordRadius, tgtOff);
+      const p4 = polar(tgtSpan.endAngle, geo.chordRadius, tgtOff);
       sel = layer.cross.append("path")
         .attr("class", "chord chord-cross")
         .attr("d", crossRibbonPath(p1, p2, p3, p4, midX))
