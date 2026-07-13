@@ -145,7 +145,14 @@
     margin: 0;
     color: var(--ink-2);
   }
+  /* Positioned + raised above #side-panel's z-index (60) so the direction
+     toggle, show-all checkbox, and zoom controls stay reachable when the
+     fixed side panel happens to overlap this row on screen -- otherwise a
+     later-painted fixed-position element always wins regardless of DOM
+     order, even though these controls are visually "in front" of it. */
   .panel-controls {
+    position: relative;
+    z-index: 61;
     display: flex;
     align-items: center;
     gap: 14px;
@@ -216,7 +223,11 @@
   }
   .zoom-controls button:hover { background: var(--hairline); }
 
+  /* See .panel-controls -- same fix, keeps the Filters toggle and its
+     dropdown (a child of this row) reachable above the fixed side panel. */
   .filter-bar {
+    position: relative;
+    z-index: 61;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
