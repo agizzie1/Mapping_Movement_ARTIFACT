@@ -369,9 +369,9 @@
   .zoom-detail .player-tick.pin-highlight, .zoom-detail .player-tick:hover { filter: none; }
 
   .chord { stroke: var(--bg-panel); stroke-width: 0.4; transition: opacity 120ms ease; cursor: pointer; }
-  .chord-conf:hover { opacity: 0.92 !important; }
-  .chord-school { opacity: 0.72; }
-  .chord-school:hover { opacity: 0.95; }
+  .chord-conf:hover { opacity: 1 !important; }
+  .chord-school { opacity: 0.9; }
+  .chord-school:hover { opacity: 1; }
   .chord-player { cursor: pointer; }
   .inner-seg { cursor: pointer; }
   .conf-label { cursor: pointer; }

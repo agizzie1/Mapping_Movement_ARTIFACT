@@ -835,7 +835,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
       }
     }
     const maxCount = d3.max([...outRibbons, ...inRibbons], r => r.deps.length) || 1;
-    const opacityScale = d3.scalePow().exponent(0.5).domain([0, maxCount]).range([0.28, 0.82]).clamp(true);
+    const opacityScale = d3.scalePow().exponent(0.5).domain([0, maxCount]).range([0.5, 1]).clamp(true);
 
     for (const { seg, deps } of outRibbons) {
       const targetSeg = incomingSegment(prepared.confSubIncoming, seg.target, conf, prepared.innerConfSpans.get(seg.target));
@@ -1567,7 +1567,7 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
       }
     }
     const maxCount = d3.max([...outRibbons, ...inRibbons], r => r.deps.length) || 1;
-    const opacityScale = d3.scalePow().exponent(0.5).domain([0, maxCount]).range([0.28, 0.82]).clamp(true);
+    const opacityScale = d3.scalePow().exponent(0.5).domain([0, maxCount]).range([0.5, 1]).clamp(true);
 
     for (const { seg, deps } of outRibbons) {
       const targetUniverse = universeOfConference(seg.target);
@@ -1621,7 +1621,7 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
         if (count === 0) continue;
         const targetLayout = prepared.innerByName.get(seg.target);
         const targetSeg = incomingSegment(prepared.schoolSubIncoming, seg.target, school, targetLayout);
-        appendFlowRibbon({ same: sameGroups[d.universe], cross: crossGroup, opacity: 0.72 },
+        appendFlowRibbon({ same: sameGroups[d.universe], cross: crossGroup, opacity: 0.9 },
           seg, targetSeg, d.universe, targetLayout.universe, d.conference,
           `<strong>${school} &rarr; ${seg.target}</strong><br>${count} player${count === 1 ? "" : "s"}<br><em>Click for the full list</em>`,
           {
@@ -1643,7 +1643,7 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
         if (!srcSeg) continue;
         const srcLayout = prepared.innerByName.get(f.source);
         const targetSeg = (myIncoming && myIncoming.segments.find(s => s.target === f.source)) || d;
-        appendFlowRibbon({ same: sameGroups[srcLayout.universe], cross: crossGroup, opacity: 0.72 },
+        appendFlowRibbon({ same: sameGroups[srcLayout.universe], cross: crossGroup, opacity: 0.9 },
           srcSeg, targetSeg, srcLayout.universe, d.universe, srcLayout.conference,
           `<strong>${f.source} &rarr; ${school}</strong><br>${count} player${count === 1 ? "" : "s"}<br><em>Click for the full list</em>`,
           {
