@@ -530,7 +530,22 @@ function buildFilterBar(key, allDeps, conferenceOrder) {
 // origin->destination ribbon is exactly that one player, so "isolating" the
 // row's ribbon is unambiguous. Rows without onClick (multi-player pairs)
 // render as plain, non-interactive text.
-function showSidePanel(title, rows) {
+//
+// The panel itself lives in normal document flow, not position: fixed, so
+// it can never float above a diagram's filters -- it only ever occupies
+// its own space directly below them. Each of renderUniverse/renderCombined
+// defines a LOCAL showSidePanel() that shadows this one: it first moves
+// the single shared #side-panel node to sit right after that panel's own
+// .filter-bar (via positionSidePanel), then delegates here to fill it in.
+// Call renderSidePanelBody directly only from code that's already certain
+// the panel is positioned correctly (i.e. nothing outside this file).
+function positionSidePanel(anchorEl) {
+  const panel = document.getElementById("side-panel");
+  if (panel && anchorEl && panel.previousElementSibling !== anchorEl) {
+    anchorEl.insertAdjacentElement("afterend", panel);
+  }
+}
+function renderSidePanelBody(title, rows) {
   const panel = document.getElementById("side-panel");
   if (!panel) return;
   document.getElementById("side-panel-title").innerHTML = title;
@@ -577,14 +592,23 @@ function clearRibbonIsolation() {
     el.classList.remove("player-isolated", "sibling-dimmed");
   });
 }
-function openPlayerPanel(school, dep) {
-  showSidePanel(dep.n, [{ name: `${school} &mdash; ${depStatusHtml(dep)}`, detail: `${dep.d}<br>${playerMetaHtml(dep)}` }]);
-}
-
 function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
   const svg = d3.select(svgEl);
   svg.selectAll("*").remove();
   const root = svg.append("g").attr("class", "diagram-root");
+
+  // Shadows the module-level showSidePanel/openPlayerPanel for every call
+  // within this closure, so every existing showSidePanel(...) call site
+  // below automatically re-anchors the shared #side-panel node under THIS
+  // panel's own filter bar before rendering into it -- see positionSidePanel.
+  const filterBarEl = document.getElementById(`filterbar-${universeKey}`);
+  function showSidePanel(title, rows) {
+    positionSidePanel(filterBarEl);
+    renderSidePanelBody(title, rows);
+  }
+  function openPlayerPanel(school, dep) {
+    showSidePanel(dep.n, [{ name: `${school} &mdash; ${depStatusHtml(dep)}`, detail: `${dep.d}<br>${playerMetaHtml(dep)}` }]);
+  }
 
   let zoomDetail = false;
   // FBS packs roughly 5x as many portal entries into a similarly-sized
@@ -1356,6 +1380,16 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
   const svg = d3.select(svgEl);
   svg.selectAll("*").remove();
   const root = svg.append("g").attr("class", "diagram-root");
+
+  // See the matching block in renderUniverse.
+  const filterBarEl = document.getElementById("filterbar-combined");
+  function showSidePanel(title, rows) {
+    positionSidePanel(filterBarEl);
+    renderSidePanelBody(title, rows);
+  }
+  function openPlayerPanel(school, dep) {
+    showSidePanel(dep.n, [{ name: `${school} &mdash; ${depStatusHtml(dep)}`, detail: `${dep.d}<br>${playerMetaHtml(dep)}` }]);
+  }
 
   let zoomDetail = false;
   // Both halves share one pan/zoom transform, so the ceiling has to
