@@ -269,8 +269,23 @@
     visibility: hidden;
   }
   .filter-clear.visible { visibility: visible; }
+  /* Holds .filter-panel and, when open, #side-panel (moved in here by
+     positionSidePanel in viz.js) side by side on the same row -- filters on
+     the left, popup on the right, matching each other's height. Whichever
+     of the two is absent/hidden just leaves the other to fill the row on
+     its own, so this needs no separate "paired" vs "solo" styling. Wraps
+     to stack vertically instead of squeezing illegibly on narrow screens. */
+  .filter-panel-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 12px;
+  }
   .filter-panel {
-    flex-basis: 100%;
+    flex: 1 1 320px;
+    min-width: 0;
+    max-height: 50vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -439,20 +454,21 @@
   }
   #tooltip strong { font-weight: 650; }
 
-  /* In normal document flow (JS moves this node to sit right after
-     whichever panel's .filter-bar triggered it -- see positionSidePanel
-     in viz.js) instead of position: fixed, so it can never float above
-     the filters: it only ever occupies its own space directly below
-     them, pushing the diagram down while open. Scrolling up to reach the
-     filters naturally scrolls this out of view below; scrolling back
-     down reveals it again where it sits in the page. */
+  /* In normal document flow (JS moves this node into whichever panel's
+     .filter-panel-row triggered it -- see positionSidePanel in viz.js)
+     instead of position: fixed, so it can never float above the filters:
+     it only ever shares a row with .filter-panel, sitting to its right at
+     matching height (align-items: stretch on the row handles that), and
+     pushes the diagram down while open. Scrolling up to reach the filters
+     scrolls this out of view along with them; scrolling back down reveals
+     both again together. */
   #side-panel {
     display: none;
     flex-direction: column;
-    align-self: flex-start;
-    width: 100%;
+    flex: 1 1 320px;
+    min-width: 0;
     max-width: 420px;
-    max-height: 55vh;
+    max-height: 50vh;
     background: var(--bg-panel);
     border: 1px solid var(--hairline);
     border-radius: 10px;

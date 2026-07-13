@@ -532,17 +532,19 @@ function buildFilterBar(key, allDeps, conferenceOrder) {
 // render as plain, non-interactive text.
 //
 // The panel itself lives in normal document flow, not position: fixed, so
-// it can never float above a diagram's filters -- it only ever occupies
-// its own space directly below them. Each of renderUniverse/renderCombined
-// defines a LOCAL showSidePanel() that shadows this one: it first moves
-// the single shared #side-panel node to sit right after that panel's own
-// .filter-bar (via positionSidePanel), then delegates here to fill it in.
-// Call renderSidePanelBody directly only from code that's already certain
-// the panel is positioned correctly (i.e. nothing outside this file).
-function positionSidePanel(anchorEl) {
+// it can never float above a diagram's filters -- it shares a row with
+// that panel's .filter-panel dropdown instead (filters on the left, popup
+// on the right, matching height), pushing the diagram down while open.
+// Each of renderUniverse/renderCombined defines a LOCAL showSidePanel()
+// that shadows this one: it first moves the single shared #side-panel node
+// into that panel's own .filter-panel-row (via positionSidePanel), then
+// delegates here to fill it in. Call renderSidePanelBody directly only
+// from code that's already certain the panel is positioned correctly (i.e.
+// nothing outside this file).
+function positionSidePanel(rowEl) {
   const panel = document.getElementById("side-panel");
-  if (panel && anchorEl && panel.previousElementSibling !== anchorEl) {
-    anchorEl.insertAdjacentElement("afterend", panel);
+  if (panel && rowEl && panel.parentElement !== rowEl) {
+    rowEl.appendChild(panel);
   }
 }
 function renderSidePanelBody(title, rows) {
@@ -599,11 +601,12 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
 
   // Shadows the module-level showSidePanel/openPlayerPanel for every call
   // within this closure, so every existing showSidePanel(...) call site
-  // below automatically re-anchors the shared #side-panel node under THIS
-  // panel's own filter bar before rendering into it -- see positionSidePanel.
-  const filterBarEl = document.getElementById(`filterbar-${universeKey}`);
+  // below automatically re-anchors the shared #side-panel node into THIS
+  // panel's own filter-panel-row before rendering into it -- see
+  // positionSidePanel.
+  const filterPanelRowEl = document.getElementById(`filterpanelrow-${universeKey}`);
   function showSidePanel(title, rows) {
-    positionSidePanel(filterBarEl);
+    positionSidePanel(filterPanelRowEl);
     renderSidePanelBody(title, rows);
   }
   function openPlayerPanel(school, dep) {
@@ -1382,9 +1385,9 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
   const root = svg.append("g").attr("class", "diagram-root");
 
   // See the matching block in renderUniverse.
-  const filterBarEl = document.getElementById("filterbar-combined");
+  const filterPanelRowEl = document.getElementById("filterpanelrow-combined");
   function showSidePanel(title, rows) {
-    positionSidePanel(filterBarEl);
+    positionSidePanel(filterPanelRowEl);
     renderSidePanelBody(title, rows);
   }
   function openPlayerPanel(school, dep) {
