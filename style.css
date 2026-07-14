@@ -81,6 +81,20 @@
     line-height: 1.55;
     max-width: 78ch;
   }
+  .desc { max-width: 78ch; }
+  .desc-lead { margin: 0 0 12px; }
+  .desc-section { margin-bottom: 12px; }
+  .desc-section:last-child { margin-bottom: 0; }
+  .desc-label {
+    margin: 0 0 3px;
+    font-size: 12px;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink-1);
+  }
+  .desc-section p { margin: 0 0 6px; }
+  .desc-section p:last-child { margin-bottom: 0; }
   header .key {
     margin-top: 10px;
     display: flex;
