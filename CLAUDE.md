@@ -1,7 +1,9 @@
-# Mapping_Movement — GitHub Pages deploy folder
+# Mapping_Movement_ARTIFACT — GitHub Pages deploy folder
 
-This folder is the git working copy for https://github.com/agizzie1/Mapping_Movement
-(published at https://agizzie1.github.io/Mapping_Movement/).
+This folder is the git working copy for https://github.com/agizzie1/Mapping_Movement_ARTIFACT
+(published at https://agizzie1.github.io/Mapping_Movement_ARTIFACT/). The repo
+was renamed from `Mapping_Movement` to `Mapping_Movement_ARTIFACT` on 2026-07-14;
+the old Pages URL now 404s.
 
 It holds exactly four files, all required together:
 - `index.html` — markup, links `style.css`, loads D3 v7 from CDN, then `viz.js`
