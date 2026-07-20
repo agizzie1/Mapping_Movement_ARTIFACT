@@ -773,11 +773,13 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
   // ---- player search box positioning ---------------------------------
   // Always the diagram's own top-left corner (not anchored to whatever
   // player was searched) -- see basketball's viz.js for the fuller
-  // explanation. This diagram has no conference pin-tooltip box (unlike
-  // basketball), but the stacking-avoidance loop below still guards
-  // against two player-search boxes (e.g. one left open in another view)
-  // landing on top of each other, and future-proofs this if a conference
-  // box gets added here later.
+  // explanation. The stacking-avoidance loop below (querying .conf-pin-tip
+  // and .player-search-tip) is what keeps this box from landing right on
+  // top of the conference pin-tooltip box below when both are pinned/
+  // searched at once -- the two must use matching selectors here, since
+  // this diagram's conference box uses a per-universe id
+  // (#pin-tooltip-${universeKey}), not the single #pin-tooltip id
+  // basketball's single-universe diagram gets away with.
   function pinTipFilterFloor() {
     const pad = 10;
     const panel = document.getElementById(`filterpanel-${universeKey}`);
@@ -801,7 +803,7 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
     top = Math.max(8, Math.min(top, window.innerHeight - tipRect.height - 8));
     const filterFloor = pinTipFilterFloor();
     if (filterFloor != null) top = Math.max(top, filterFloor);
-    for (const other of document.querySelectorAll("#pin-tooltip, .player-search-tip")) {
+    for (const other of document.querySelectorAll(".conf-pin-tip, .player-search-tip")) {
       if (other === tipSelection.node() || getComputedStyle(other).display === "none") continue;
       const rect = other.getBoundingClientRect();
       const overlapsHorizontally = left < rect.right && left + tipRect.width > rect.left;
@@ -1675,7 +1677,7 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
     top = Math.max(8, Math.min(top, window.innerHeight - tipRect.height - 8));
     const filterFloor = pinTipFilterFloor();
     if (filterFloor != null) top = Math.max(top, filterFloor);
-    for (const other of document.querySelectorAll("#pin-tooltip, .player-search-tip")) {
+    for (const other of document.querySelectorAll(".conf-pin-tip, .player-search-tip")) {
       if (other === tipSelection.node() || getComputedStyle(other).display === "none") continue;
       const rect = other.getBoundingClientRect();
       const overlapsHorizontally = left < rect.right && left + tipRect.width > rect.left;
