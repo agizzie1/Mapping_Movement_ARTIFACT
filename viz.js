@@ -2410,12 +2410,20 @@ function wireUniverseControls(key, handleRef) {
   wirePlayerSearchInput(key, handleRef);
 }
 
-function wireTabs() {
+function wireTabs(handleRefs) {
   const buttons = Array.from(document.querySelectorAll(".tab-btn"));
   buttons.forEach(btn => btn.addEventListener("click", () => {
     buttons.forEach(b => b.classList.toggle("active", b === btn));
-    document.getElementById("view-separate").style.display = btn.dataset.view === "separate" ? "" : "none";
-    document.getElementById("view-combined").style.display = btn.dataset.view === "combined" ? "" : "none";
+    const showingSeparate = btn.dataset.view === "separate";
+    document.getElementById("view-separate").style.display = showingSeparate ? "" : "none";
+    document.getElementById("view-combined").style.display = showingSeparate ? "none" : "";
+    // The player-search box lives outside #view-separate/#view-combined
+    // (so it can float freely), so hiding a view doesn't hide its box --
+    // left open, it would keep floating at its last position indefinitely,
+    // often right on top of whichever view is now showing. Close it along
+    // with its view.
+    const toClear = showingSeparate ? [handleRefs.combined] : [handleRefs.fbs, handleRefs.fcs];
+    for (const ref of toClear) if (ref.current) ref.current.clearSearch();
   }));
 }
 
@@ -2462,7 +2470,7 @@ function boot(CHORD_DATA) {
   wireUniverseControls("fbs", fbsHandleRef);
   wireUniverseControls("fcs", fcsHandleRef);
   wireUniverseControls("combined", combinedHandleRef);
-  wireTabs();
+  wireTabs({ fbs: fbsHandleRef, fcs: fcsHandleRef, combined: combinedHandleRef });
   document.getElementById("side-panel-close").addEventListener("click", hideSidePanel);
 
   const observer = new MutationObserver(renderAll);
