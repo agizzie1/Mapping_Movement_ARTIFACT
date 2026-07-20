@@ -771,12 +771,13 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
   function hideTip() { tooltip.style("display", "none"); }
 
   // ---- player search box positioning ---------------------------------
-  // Ported from the basketball diagram (which also has a conference
-  // pin-tooltip using this same corner logic; this diagram doesn't have
-  // that box, but the player-search box needs the same placement math).
-  // Prefers sitting fully outside the diagram's left/right edge, falling
-  // back to that side's corner of the SVG's own square canvas when the
-  // viewport's too narrow, and never sits on top of the Filters panel.
+  // Always the diagram's own top-left corner (not anchored to whatever
+  // player was searched) -- see basketball's viz.js for the fuller
+  // explanation. This diagram has no conference pin-tooltip box (unlike
+  // basketball), but the stacking-avoidance loop below still guards
+  // against two player-search boxes (e.g. one left open in another view)
+  // landing on top of each other, and future-proofs this if a conference
+  // box gets added here later.
   function pinTipFilterFloor() {
     const pad = 10;
     const panel = document.getElementById(`filterpanel-${universeKey}`);
@@ -793,22 +794,20 @@ function renderUniverse(svgEl, legendEl, universeKey, label, prepared, geo) {
     const pad = 14;
     const svgRect = svgEl.getBoundingClientRect();
     const tipRect = tipSelection.node().getBoundingClientRect();
-    const onLeft = (anchorRect.left + anchorRect.width / 2) < (svgRect.left + svgRect.width / 2);
-    const onTop = (anchorRect.top + anchorRect.height / 2) < (svgRect.top + svgRect.height / 2);
 
-    let left = onLeft ? (svgRect.left - pad - tipRect.width) : (svgRect.right + pad);
-    const fitsOutside = left >= 8 && left + tipRect.width <= window.innerWidth - 8;
-    let top;
-    if (fitsOutside) {
-      top = anchorRect.top;
-    } else {
-      left = onLeft ? (svgRect.left + pad) : (svgRect.right - pad - tipRect.width);
-      top = onTop ? (svgRect.top + pad) : (svgRect.bottom - pad - tipRect.height);
-    }
+    let left = svgRect.left + pad;
+    let top = svgRect.top + pad;
     left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
     top = Math.max(8, Math.min(top, window.innerHeight - tipRect.height - 8));
     const filterFloor = pinTipFilterFloor();
     if (filterFloor != null) top = Math.max(top, filterFloor);
+    for (const other of document.querySelectorAll("#pin-tooltip, .player-search-tip")) {
+      if (other === tipSelection.node() || getComputedStyle(other).display === "none") continue;
+      const rect = other.getBoundingClientRect();
+      const overlapsHorizontally = left < rect.right && left + tipRect.width > rect.left;
+      if (overlapsHorizontally) top = Math.max(top, rect.bottom + pad);
+    }
+    top = Math.max(8, top);
     tipSelection.style("left", (left + window.scrollX) + "px").style("top", (top + window.scrollY) + "px");
   }
   const playerSearch = createPlayerSearchController({
@@ -1669,22 +1668,20 @@ function renderCombined(svgEl, legendEl, prepared, geo) {
     const pad = 14;
     const svgRect = svgEl.getBoundingClientRect();
     const tipRect = tipSelection.node().getBoundingClientRect();
-    const onLeft = (anchorRect.left + anchorRect.width / 2) < (svgRect.left + svgRect.width / 2);
-    const onTop = (anchorRect.top + anchorRect.height / 2) < (svgRect.top + svgRect.height / 2);
 
-    let left = onLeft ? (svgRect.left - pad - tipRect.width) : (svgRect.right + pad);
-    const fitsOutside = left >= 8 && left + tipRect.width <= window.innerWidth - 8;
-    let top;
-    if (fitsOutside) {
-      top = anchorRect.top;
-    } else {
-      left = onLeft ? (svgRect.left + pad) : (svgRect.right - pad - tipRect.width);
-      top = onTop ? (svgRect.top + pad) : (svgRect.bottom - pad - tipRect.height);
-    }
+    let left = svgRect.left + pad;
+    let top = svgRect.top + pad;
     left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
     top = Math.max(8, Math.min(top, window.innerHeight - tipRect.height - 8));
     const filterFloor = pinTipFilterFloor();
     if (filterFloor != null) top = Math.max(top, filterFloor);
+    for (const other of document.querySelectorAll("#pin-tooltip, .player-search-tip")) {
+      if (other === tipSelection.node() || getComputedStyle(other).display === "none") continue;
+      const rect = other.getBoundingClientRect();
+      const overlapsHorizontally = left < rect.right && left + tipRect.width > rect.left;
+      if (overlapsHorizontally) top = Math.max(top, rect.bottom + pad);
+    }
+    top = Math.max(8, top);
     tipSelection.style("left", (left + window.scrollX) + "px").style("top", (top + window.scrollY) + "px");
   }
   const playerSearch = createPlayerSearchController({
